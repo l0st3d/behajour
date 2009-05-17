@@ -5,7 +5,12 @@
 
 (defstruct step :stage)
 
-(defmacro defstep "Use this to create the steps that implement the scenarios" [stage & elements]
+(with-test
+	(defn- map-elements-to-strings [[ & elements]]
+	  (map (fn [a] (str a)) elements))
+  (is (= ["a" "b" "c"] (map-elements-to-strings ['a 'b 'c]))))
+
+(defn defstep "Use this to create the steps that implement the scenarios" [[stage & elements] fn]
   (dosync (ref-set steps (conj @steps (struct step stage)))))
 
 (defn- tokenize-scenario 
@@ -46,10 +51,8 @@
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
 (defmacro scenario "The BDD scenario definition macro"
-  [ & body]
-  (let [title (first body)
-		test-clauses (rest body)]
-	(conj (map (fn [a] (str a)) test-clauses) `parse-scenario)))
+  [title & test-clauses]
+  (conj (map-elements-to-strings test-clauses) `parse-scenario))
 
 (deftest integration-test
   (scenario "the bdd library runs tests in a given, when, then format"
@@ -70,19 +73,26 @@
 			When the numbers are multiplied
 			Then a result is 2))
 
-(def test-fn-map (ref {}))
+(def test-fn-map (new java.util.HashMap))
 
 (deftest test-strings-group-tokens
-  (binding [steps []
-			test-fn-map (ref {})]
-	(defstep :given 'a 'string (fn [t] (println t)))
-	(defstep :when 'the 'tokens 'are 'counted)
-	(defstep :then 'there 'is (fn [n] n))
+  (binding [steps (ref [])
+			test-fn-map (new java.util.HashMap)]
+	(defstep [:given 'a 'string (fn [t] (println t))]
+	  (fn [arg]
+		(. test-fn-map put :given arg)))
+	(defstep [:when 'the 'tokens 'are 'counted]
+	  (fn []
+		(. test-fn-map put :when "when")))
+	(defstep [:then 'there 'is (fn [n] n)]
+	  (fn [arg]
+		(. test-fn-map put :then arg)))
 	(scenario "strings are one token"
 			  Given a string "with some spaces"
 			  When the tokens are counted
 			  Then there is 1)
-	(is (= {:given 't :when 't :then 't} @test-fn-map))))
+	(is (= 3 (count @steps)))
+	(is (= "with some spaces" (. test-fn-map get :given)))
+	(is (= "when" (. test-fn-map get :when)))
+	(is (= "1" (. test-fn-map get :then)))))
 
-(deftest test-defstep
-  (defstep :given 'a 'test))
