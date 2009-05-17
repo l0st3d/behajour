@@ -8,7 +8,6 @@
 (defmacro defstep "Use this to create the steps that implement the scenarios" [stage & elements]
   (dosync (ref-set steps (conj @steps (struct step stage)))))
 
-
 (defn- tokenize-scenario 
   ([test-clauses]
 	 (tokenize-scenario nil [] test-clauses))
@@ -22,7 +21,7 @@
 			 (if (or (. "then" equals token) (. "when" equals token))
 			   (recur stage (conj accum (keyword token)) (vec (rest test-clauses)))
 			   (recur stage (conj accum token) (vec (rest test-clauses)))))
-		   (if (not (= token "given")) ;stage not known and not a given clause
+		   (if (not (= token "given"))
 			 (throw (new IllegalArgumentException (str "missing given - found " token)))
 			 (recur :given [:given] (vec (rest test-clauses)))))))))
 
@@ -71,8 +70,19 @@
 			When the numbers are multiplied
 			Then a result is 2))
 
+(def test-fn-map (ref {}))
+
 (deftest test-strings-group-tokens
-  (scenario "strings are one token"
-			Given a string "with some spaces"
-			When the tokens are counted
-			Then there is 1))
+  (binding [steps []
+			test-fn-map (ref {})]
+	(defstep :given 'a 'string (fn [t] (println t)))
+	(defstep :when 'the 'tokens 'are 'counted)
+	(defstep :then 'there 'is (fn [n] n))
+	(scenario "strings are one token"
+			  Given a string "with some spaces"
+			  When the tokens are counted
+			  Then there is 1)
+	(is (= {:given 't :when 't :then 't} @test-fn-map))))
+
+(deftest test-defstep
+  (defstep :given 'a 'test))
