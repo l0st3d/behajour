@@ -10,30 +10,6 @@
 (def current-clause [])
 (def current-parsed-scenario {})
 
-(with-test
-	(defn- parse-scenario [ & test-clauses]
-	  (binding [current-clause []
-				current-parsed-scenario {}
-				current-phase nil]
-		(doseq [token test-clauses]
-		  (print (str " " token))
-		  (cond
-			(contains? ["Given" "When" "Then"] token) (do
-														(if current-phase
-														  (println (str " 1 : " current-parsed-scenario " 2 : " current-phase " 3 : " current-clause)))
-
-														(if current-phase (set! current-parsed-scenario (assoc current-parsed-scenario current-phase current-clause)))
-														(set! current-phase (keyword (. token toLowerCase)))
-														(set! current-clause []))
-			(. "and" equalsIgnoreCase token) ""
-			:else (do
-					(println (str current-phase))
-					(set! current-clause (vector current-clause token)))))
-		current-parsed-scenario))
-
-  (is (= {:given [""] :when [""] :then [""]} 
-		 (parse-scenario "Given" "" "When" "" "Then" ""))))
-
 
 
 
@@ -50,6 +26,17 @@
 			 (if (not (= token "given")) ;stage not known and not a given clause
 			   (throw (new IllegalArgumentException "missing given"))
 			   (recur :given [:given] (vec (rest test-clauses)))))))))
+
+(defn group-tokens [& tokens]
+  (loop ))
+
+
+
+(with-test
+	(defn- parse-scenario [ & test-clauses]
+	  (tokenize-scenario nil [] test-clauses))
+  (is (= {[:given "a"] [:when "b"] [:then "c"]}
+		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
 
 
