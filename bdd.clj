@@ -37,13 +37,21 @@
 
 
 
-(with-test
-	(defn- parse-scenario 
-	  ([stage test-clauses]
-		 (if (not (or stage (= (str (first test-clauses)) "Given")))
-		   (throw (new IllegalArgumentException "missing given")))
-		 ))
-  (is (= (
+(defn- tokenize-scenario 
+  ([stage accum test-clauses]
+	 (if (= 0 (count test-clauses)) accum
+		 (let [token (. (str (first test-clauses)) toLowerCase)]
+		   (if stage
+			 (if (. "and" equalsIgnoreCase token)
+			   (recur stage (conj accum stage) (vec (rest test-clauses)))
+			   (if (or (. "then" equals token) (. "when" equals token))
+				 (recur stage (conj accum (keyword token)) (vec (rest test-clauses)))
+				 (recur stage (conj accum token) (vec (rest test-clauses)))))
+			 (if (not (= token "given")) ;stage not known and not a given clause
+			   (throw (new IllegalArgumentException "missing given"))
+			   (recur :given [:given] (vec (rest test-clauses)))))))))
+
+
 
 
 
