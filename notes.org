@@ -4,7 +4,7 @@
  - I'm used to writing tests in a Given, when, then style, with the reuse available with JBehave
  - Saw http://code.google.com/p/conducta/ and thought it could be done better, so I gave it a go ...
 
-* Features
- - defstep function that defines each step, and how it gets data
- - scenario macro that defines each test
-   - integrates with test-is - each scenario is a test-is test
+* Features [%]
+ - [ ] defstep function that defines each step, and how it gets data
+ - [ ] scenario macro that defines each test
+   - [ ] integrates with test-is - each scenario is a test-is test
