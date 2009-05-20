@@ -3,7 +3,7 @@
 
 (def steps (ref []))
 
-(defstruct step :stage :keywords :implemntation)
+(defstruct step :stage :keywords :implementation)
 
 (with-test
 	(defn- map-elements-to-strings [[ & elements]]
@@ -16,7 +16,7 @@
   (binding [steps (ref [])]
 	(let [impl (fn [] 1)]
 	  (defstep [:given "a" "b" "c"] impl)
-	  (is (= @steps [{:stage :given :keywords ["a" "b" "c"] :implemntation impl}])))))
+	  (is (= @steps [{:stage :given :keywords ["a" "b" "c"] :implementation impl}])))))
 
 (with-test
 	(defn- match-step-keywords? [scenario-keywords step-keywords]
@@ -59,15 +59,15 @@
 	(defn- match-steps? [stage & keywords]
 	  (let [matching-steps (get-matching-steps stage keywords)]
 		(if (= 1 (count matching-steps))
-		  ((first matching-steps):implemntation)
+		  ((first matching-steps) :implementation)
 		  false)))
 
   (let [impl-1 (fn [] 1)
 		impl-2 (fn [] 2)
 		impl-3 (fn [] 3)]
-	(binding [steps [{:stage :given :keywords ["a" "b" "c"] :implemntation impl-1}
-					 {:stage :when :keywords ["a" "b" "c"] :implemntation impl-2}
-					 {:stage :then :keywords ["a" "b" "c"] :implemntation impl-3}]]
+	(binding [steps [{:stage :given :keywords ["a" "b" "c"] :implementation impl-1}
+					 {:stage :when :keywords ["a" "b" "c"] :implementation impl-2}
+					 {:stage :then :keywords ["a" "b" "c"] :implementation impl-3}]]
 	  (is (= impl-1 (match-steps? :given "a" "b" "c")))
 	  (is (= impl-2 (match-steps? :when "a" "b" "c")))
 	  (is (= impl-3 (match-steps? :then "a" "b" "c"))))))
