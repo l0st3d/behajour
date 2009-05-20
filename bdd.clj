@@ -2,7 +2,7 @@
   (:use clojure.contrib.test-is))
 
 (def steps (ref []))
-
+(def *test-output* *out*)
 (defstruct step :stage :keywords :implementation)
 
 (with-test
@@ -59,7 +59,7 @@
 	(defn- match-steps? [stage & keywords]
 	  (let [matching-steps (get-matching-steps stage keywords)]
 		(if (= 1 (count matching-steps))
-		  ((first matching-steps) :implementation)
+		  (first matching-steps)
 		  false)))
 
   (let [impl-1 (fn [] 1)
@@ -109,13 +109,20 @@
   (is (= [[:given "a"] [:when "b"] [:then "c"]]
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
-(defn- execute-scenario [& test-clauses]
-  (doseq [test-clause test-clauses]
-	))
+(defn- execute-scenario [tests]
+  (doseq [test-line tests]
+	(let [[stage test-clauses] test-line
+		  step (match-steps? stage test-clauses)]
+	  (if step
+		((step :implementation) test-clauses)
+		()))))
+
+
+
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
-  (conj (map-elements-to-strings test-clauses) `parse-scenario))
+  (list `execute-scenario (conj (map-elements-to-strings test-clauses) `parse-scenario)))
 
 (deftest integration-test
   (scenario "the bdd library runs tests in a given, when, then format"
