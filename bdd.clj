@@ -1,7 +1,7 @@
-(ns bdd
+(ns behajour
   (:use clojure.contrib.test-is))
 
-(def steps (ref []))
+(def *steps* (ref []))
 (def *test-output* *out*)
 (defstruct step :stage :keywords :implementation)
 
@@ -12,11 +12,11 @@
 
 (with-test
 	(defn defstep "Use this to create the steps that implement the scenarios" [[stage & keywords] fn]
-	  (dosync (ref-set steps (conj @steps (struct step stage keywords fn)))))
-  (binding [steps (ref [])]
+	  (dosync (alter *steps* conj (struct step stage keywords fn))))
+  (binding [*steps* (ref [])]
 	(let [impl (fn [] 1)]
 	  (defstep [:given "a" "b" "c"] impl)
-	  (is (= @steps [{:stage :given :keywords ["a" "b" "c"] :implementation impl}])))))
+	  (is (= @*steps* [{:stage :given :keywords ["a" "b" "c"] :implementation impl}])))))
 
 (with-test
 	(defn- match-step-keywords? [scenario-keywords step-keywords]
@@ -49,28 +49,31 @@
   (is (= false (match-step-keywords? ["a" "b" "c" "d" "e"] ["a" (fn [b c] 1) "d"])))
   (is (= true (match-step-keywords? ["a" "b" "c" "d" "e"] ["a" (fn [b c d e] 1)]))))
 
-(defn- get-matching-steps [stage keywords]
-  (filter (fn [step]
-			(and (= stage (step :stage))
-				 (match-step-keywords? keywords (step :keywords))))
-		  steps))
+(with-test
+	(defn- get-matching-steps [stage keywords]
+	  (filter (fn [step]
+				(and (= stage (step :stage))
+					 (match-step-keywords? keywords (step :keywords))))
+			  @*steps*))
+  (binding [*steps* (ref [{:stage :given :keywords ["a" "b" "c"] :implementation (fn [] 1)}
+						  {:stage :when  :keywords ["a" "b" "c"] :implementation (fn [] 2)}
+						  {:stage :then  :keywords ["a" "b" "c"] :implementation (fn [] 3)}])]
+	(is (= [(first @*steps*)]
+		   (get-matching-steps :given ["a" "b" "c"])))))
 
 (with-test
-	(defn- match-steps? [stage & keywords]
+	(defn- match-steps? [stage keywords]
 	  (let [matching-steps (get-matching-steps stage keywords)]
 		(if (= 1 (count matching-steps))
 		  (first matching-steps)
 		  false)))
 
-  (let [impl-1 (fn [] 1)
-		impl-2 (fn [] 2)
-		impl-3 (fn [] 3)]
-	(binding [steps [{:stage :given :keywords ["a" "b" "c"] :implementation impl-1}
-					 {:stage :when :keywords ["a" "b" "c"] :implementation impl-2}
-					 {:stage :then :keywords ["a" "b" "c"] :implementation impl-3}]]
-	  (is (= impl-1 (match-steps? :given "a" "b" "c")))
-	  (is (= impl-2 (match-steps? :when "a" "b" "c")))
-	  (is (= impl-3 (match-steps? :then "a" "b" "c"))))))
+  (binding [*steps* (ref [{:stage :given :keywords ["a" "b" "c"] :implementation (fn [] 1)}
+						  {:stage :when  :keywords ["a" "b" "c"] :implementation (fn [] 2)}
+						  {:stage :then  :keywords ["a" "b" "c"] :implementation (fn [] 3)}])]
+	(is (= (first @*steps*) (match-steps? :given ["a" "b" "c"])))
+	(is (= (second @*steps*) (match-steps? :when ["a" "b" "c"])))
+	(is (= (nth @*steps* 2) (match-steps? :then ["a" "b" "c"])))))
   
 (defn- tokenize-scenario 
   ([test-clauses]
@@ -146,7 +149,7 @@
 (def test-fn-map (new java.util.HashMap))
 
 (deftest test-strings-group-tokens
-  (binding [steps (ref [])
+  (binding [*steps* (ref [])
 			test-fn-map (new java.util.HashMap)]
 
 	(defstep [:given 'a 'string (fn [t] (println t))]
@@ -164,7 +167,7 @@
 			  When the tokens are counted
 			  Then there is 1)
 
-	(is (= 3 (count @steps)))
+	(is (= 3 (count @*steps*)))
 	(is (= "with some spaces" (. test-fn-map get :given)))
 	(is (= "when" (. test-fn-map get :when)))
 	(is (= "1" (. test-fn-map get :then)))))
