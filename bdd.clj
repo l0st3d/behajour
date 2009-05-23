@@ -2,7 +2,6 @@
   (:use clojure.contrib.test-is))
 
 (def *steps* (ref []))
-(def *test-output* *out*)
 (defstruct step :stage :keywords :implementation)
 
 (with-test
@@ -116,9 +115,15 @@
   (doseq [test-line tests]
 	(let [[stage test-clauses] test-line
 		  step (match-steps? stage test-clauses)]
-	  (if step
-		((step :implementation) test-clauses)
-		()))))
+	  (with-test-out
+		(if step
+		  ((step :implementation) test-clauses)
+		  (do 
+			(print (str stage " "))
+			(doseq [clause test-clauses]
+			  (print (str clause " ")))
+			(println " PENDING")))))))
+
 
 
 
