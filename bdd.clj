@@ -113,7 +113,7 @@
 
 (defn- execute-scenario [tests]
   (doseq [test-line tests]
-	(let [[stage test-clauses] test-line
+	(let [[stage & test-clauses] test-line
 		  step (match-steps? stage test-clauses)]
 	  (with-test-out
 		(if step
