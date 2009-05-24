@@ -1,6 +1,8 @@
 (ns behajour
   (:use clojure.contrib.test-is))
 
+(import 'java.io.StringWriter)
+
 (def *steps* (ref []))
 (defstruct step :stage :keywords :implementation)
 
@@ -111,22 +113,39 @@
   (is (= [[:given "a"] [:when "b"] [:then "c"]]
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
+(defn- print-step [stage test-clauses]
+  (print (str stage " "))
+  (doseq [clause test-clauses]
+	(print (str clause " ")))
+  (println "(PENDING)"))
+
+(with-test
+	(defn- get-test-fn-args 
+	  ([scenario-keywords step-keywords]
+		 (get-test-fn-args [] scenario-keywords step-keywords))
+	  ([accum scenario-keywords step-keywords]
+		 (if (or (= 0 (count scenario-keywords))
+				 (= 0 (count step-keywords)))
+		   accum
+		   (if (= (first step-keywords) (first scenario-keywords))
+			 (recur accum (rest scenario-keywords) (rest step-keywords))
+			 (if (= (second step-keywords)
+					(second scenario-keywords))
+			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) (rest step-keywords))
+			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) step-keywords))))))
+  
+  (is (= [] (get-test-fn-args ["a" "b" "c"] ["a" "b" "c"])))
+  (is (= ["b" "c" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" (fn [b c d] [b c d]) "e"])))
+  (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" (fn [a] a) "c"]))))
+
 (defn- execute-scenario [tests]
   (doseq [test-line tests]
 	(let [[stage & test-clauses] test-line
 		  step (match-steps? stage test-clauses)]
 	  (with-test-out
 		(if step
-		  ((step :implementation) test-clauses)
-		  (do 
-			(print (str stage " "))
-			(doseq [clause test-clauses]
-			  (print (str clause " ")))
-			(println " PENDING")))))))
-
-
-
-
+		  (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords)))
+		  (print-step stage test-clauses))))))
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
@@ -151,19 +170,24 @@
 			When the numbers are multiplied
 			Then a result is 2))
 
+(deftest test-steps-are-displayed-as-pending
+  (binding [*test-out* (new StringWriter)]
+	(scenario "test pending" Given something)
+	(is (. (str *test-out*) matches ".*PENDING.*"))))
+
 (def test-fn-map (new java.util.HashMap))
 
 (deftest test-strings-group-tokens
   (binding [*steps* (ref [])
 			test-fn-map (new java.util.HashMap)]
 
-	(defstep [:given 'a 'string (fn [t] (println t))]
+	(defstep [:given "a" "string" (fn [t] (println t))]
 	  (fn [arg]
 		(. test-fn-map put :given arg)))
-	(defstep [:when 'the 'tokens 'are 'counted]
+	(defstep [:when "the" "tokens" "are" "counted"]
 	  (fn []
 		(. test-fn-map put :when "when")))
-	(defstep [:then 'there 'is (fn [n] n)]
+	(defstep [:then "there" "is" (fn [n] n)]
 	  (fn [arg]
 		(. test-fn-map put :then arg)))
 
