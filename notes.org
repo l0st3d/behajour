@@ -9,3 +9,4 @@
  - [X] scenario macro that defines each test
  - [ ] integrates with test-is - each scenario is a test-is test
  - [ ] stops executing test if a step is pending
+ - [ ] conversion functions

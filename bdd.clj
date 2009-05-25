@@ -173,11 +173,11 @@
 	 (binding [*out* (new StringWriter)]
 	   (println (str "\n\n Scenario : " title "\n"))
 	   (execute-scenario title tests false)
-	   (println "\n\n")
-))
+	   (println "\n\n")))
   ([_ tests test-known-pending]
-	 (let [test-line (first tests)
-		   [stage & test-clauses] test-line
+	 (if (< (count tests) 0)
+	   (let [test-line (first tests)
+			 [stage & test-clauses] test-line
 			 step (match-steps? stage test-clauses)]
 		 (print-step stage test-clauses)
 		 (if (and step (not test-known-pending))
@@ -185,7 +185,7 @@
 		   (println "(PENDING)"))
 		 (if step
 		   (recur 't (rest tests) test-known-pending)
-		   (recur 't (rest tests) true)))))
+		   (recur 't (rest tests) true))))))
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
