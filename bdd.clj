@@ -171,10 +171,11 @@
 (defn- execute-scenario 
   ([title tests]
 	 (binding [*out* (new StringWriter)]
+	   (println (str "\n\n Scenario : " title "\n"))
 	   (execute-scenario title tests false)
-	   (println "\n\n")))
-  ([title tests test-known-pending]
-	 (println (str "\n\n Scenario : " title "\n"))
+	   (println "\n\n")
+))
+  ([_ tests test-known-pending]
 	 (let [test-line (first tests)
 		   [stage & test-clauses] test-line
 			 step (match-steps? stage test-clauses)]
@@ -182,9 +183,9 @@
 		 (if (and step (not test-known-pending))
 		   (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords)))
 		   (println "(PENDING)"))
-		 (comment step
-		   (recur title (rest tests) test-known-pending)
-		   (recur title (rest tests) true)))))
+		 (if step
+		   (recur 't (rest tests) test-known-pending)
+		   (recur 't (rest tests) true)))))
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
