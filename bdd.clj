@@ -1,5 +1,6 @@
 (ns behajour
-  (:use clojure.contrib.test-is))
+  (:use clojure.contrib.test-is)
+  (:use clojure.contrib.str-utils))
 
 (import 'java.io.StringWriter)
 (import 'java.util.HashMap)
@@ -178,7 +179,7 @@
 		 (with-test-out
 		   (println (str "\n Scenario : " title " (EXECUTED)")))))) 
   ([_ tests test-known-pending]
-	 (if (= 0 (count tests))
+	 (if (< 0 (count tests))
 	   (let [test-line (first tests)
 			 [stage & test-clauses] test-line
 			 step (match-steps? stage test-clauses)]
@@ -189,8 +190,7 @@
 		 (if step
 		   (recur 't (rest tests) test-known-pending)
 		   (recur 't (rest tests) true)))
-	   (do (println "lkjlkj")
-		   (not test-known-pending)))))
+	   (not test-known-pending))))
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
