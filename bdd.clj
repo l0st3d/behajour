@@ -145,9 +145,7 @@
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
 (defn- print-step [stage test-clauses]
-  (print (str stage " "))
-  (doseq [clause test-clauses]
-	(print (str clause " "))))
+  (print (str stage " " (apply str test-clauses) " ")))
 
 (with-test
 	(defn- get-test-fn-args 
@@ -171,11 +169,16 @@
 (defn- execute-scenario 
   ([title tests]
 	 (binding [*out* (new StringWriter)]
-	   (println (str "\n\n Scenario : " title "\n"))
-	   (execute-scenario title tests false)
-	   (println "\n\n")))
+	   (println (str "\n Scenario : " title " (PENDING)\n"))
+	   (if (execute-scenario title tests false)
+		 (let [pending-test-info (str *out*)]
+		   (with-test-out
+			 (println " ---- ---- ")
+			 (println pending-test-info)))
+		 (with-test-out
+		   (println (str "\n Scenario : " title " (EXECUTED)")))))) 
   ([_ tests test-known-pending]
-	 (if (< (count tests) 0)
+	 (if (= 0 (count tests))
 	   (let [test-line (first tests)
 			 [stage & test-clauses] test-line
 			 step (match-steps? stage test-clauses)]
@@ -185,7 +188,9 @@
 		   (println "(PENDING)"))
 		 (if step
 		   (recur 't (rest tests) test-known-pending)
-		   (recur 't (rest tests) true))))))
+		   (recur 't (rest tests) true)))
+	   (do (println "lkjlkj")
+		   (not test-known-pending)))))
   
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
