@@ -16,6 +16,13 @@
   (is (= ["a" "b" "c"] (map-elements-to-strings ['a 'b 'c]))))
 
 (with-test
+	(defn- map-elements-to-fns-or-strings [[ & elements]]
+	  (map #(if (fn? %) % (str %)) elements))
+  (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
+  (let [func #(num %)]
+	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func])))))
+
+(with-test
 	(defn define-step [stage keywords fn]
 	  (dosync (alter *steps* conj (struct step stage keywords fn))))
   (binding [*steps* (ref [])]
@@ -36,7 +43,7 @@
 
 (defmacro defstep "Use this to create the steps that implement the scenarios"
   [[stage & keywords] args & body]
-  `(define-step ~(make-keyword stage) ~(vec (map-elements-to-strings keywords))
+  `(define-step ~(make-keyword stage) ~(vec (map-elements-to-fns-or-strings keywords))
 		(fn ~args ~@body)))
 
 (deftest test-defstep
@@ -47,7 +54,15 @@
 			 [Given a thing]
 			 []
 			 (clojure.core/println "fish")))))
-  (is (vector? (nth (macroexpand-1 '(defstep [given a thing] [] (println "fish"))) 2))))
+  (is (vector? (nth (macroexpand-1 '(defstep [given a thing] [] (println "fish"))) 2)))
+  (let [func #(num %)]
+	(is (= `(define-step :given ["a" ~func]
+			  (fn [] (println "frog")))
+		   (macroexpand-1
+			(list 'defstep
+				  ['given 'a func]
+				  []
+				  '(clojure.core/println "frog")))))))
 
 (with-test
 	(defn- match-step-keywords? [scenario-keywords step-keywords]
@@ -167,34 +182,34 @@
   (is (= ["b" "c" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" (fn [b c d] [b c d]) "e"])))
   (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" (fn [a] a) "c"]))))
 
-(defn- execute-scenario
-  ([title tests]
-	 (binding [*out* (new StringWriter)]
-	   (println (str "\n Scenario : " title " (PENDING)\n"))
-	   (if (execute-scenario title tests false)
-		 (let [pending-test-info (str *out*)]
-		   (with-test-out
-			 (println " ---- ---- ")
-			 (println pending-test-info)))
-		 (with-test-out
-		   (println (str "\n Scenario : " title " (EXECUTED)"))))))
-  ([_ tests test-known-pending]
-	 (if (< 0 (count tests))
-	   (let [test-line (first tests)
-			 [stage & test-clauses] test-line
-			 step (match-steps? stage test-clauses)]
-		 (print-step stage test-clauses)
-		 (if (and step (not test-known-pending))
-		   (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords)))
-		   (println "(PENDING)"))
-		 (if step
-		   (recur 't (rest tests) test-known-pending)
-		   (recur 't (rest tests) true)))
-	   (not test-known-pending))))
+(with-test
+	(defn- execute-scenario
+	  ([title tests]
+		 (binding [*out* (new StringWriter)]
+		   (println (str "\n Scenario : " title " (PENDING)\n"))
+		   (if (execute-scenario title tests false)
+			 (let [pending-test-info (str *out*)]
+			   (with-test-out
+				 (println pending-test-info))))))
+	  ([_ tests test-known-pending]
+		 (if (< 0 (count tests))
+		   (let [test-line (first tests)
+				 [stage & test-clauses] test-line
+				 step (match-steps? stage test-clauses)]
+			 (print-step stage (str-join " " test-clauses))
+			 (if (and step (not test-known-pending))
+			   (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords)))
+			   (println "(PENDING)"))
+			 (if step
+			   (recur 't (rest tests) test-known-pending)
+			   (recur 't (rest tests) true)))
+		   test-known-pending)))
+  
+  (is (= 1 1)))
 
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
-  (let [test-name (re-gsub #"[^a-zA-Z -]" "" (re-gsub #" " "-" title))]
+  (let [test-name (re-gsub #"[^a-zA-Z -?]" "" (re-gsub #" " "-" (str "behajour-test-" title)))]
 	`(deftest ~(symbol test-name)
 	   (execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))))
 
@@ -221,7 +236,7 @@
 			test-fn-map (new HashMap)]
 
 	(defstep
-		[given a #(%) number #(num %)]
+		[given a #(str %) number #(num %)]
 		[k n]
 	  (. test-fn-map put k n))
 
@@ -238,7 +253,7 @@
 								  (. test-fn-map get "second"))))
 
 	(defstep
-		[Then a result is (fn [n] (num n))]
+		[Then a result is #(num %)]
 		[n]
 	  (is (= n (. test-fn-map get "answer"))))
 
@@ -254,6 +269,8 @@
 (deftest test-steps-are-displayed-as-pending
   (binding [*test-out* (new StringWriter)]
 	(scenario "test pending" Given something)
+	(behajour-test-test-pending)
+	(def behajour-test-test-pending nil)
 	(is (. (str *test-out*) matches ".*PENDING.*"))))
 
 (deftest test-strings-group-tokens
@@ -273,10 +290,14 @@
 		[arg]
 	  (. test-fn-map put :then arg))
 
+	(println (str @*steps*))
+
 	(scenario "strings are one token"
 			  Given a string "with some spaces"
 			  When the tokens are counted
 			  Then there is 1 token)
+
+	(behajour-test-strings-are-one-token)
 
 	(is (= 3 (count @*steps*)))
 	(is (= "with some spaces" (. test-fn-map get :given)))
