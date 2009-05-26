@@ -42,7 +42,7 @@
 (deftest test-defstep
   (is (= `(define-step :given ["a" "thing"]
 			(fn [] (println "fish")))
-		 (macroexpand-1 
+		 (macroexpand-1
 		  '(defstep
 			 [Given a thing]
 			 []
@@ -64,12 +64,12 @@
 
 		  (compare-as-strings scenario-keyword step-keyword)
 		  (recur (rest scenario-keywords) (rest step-keywords))
-		  
+
 		  (fn? step-keyword)
 		  (if (compare-as-strings (second scenario-keywords) (second step-keywords))
 			(recur (rest scenario-keywords) (rest step-keywords))
 			(recur (rest scenario-keywords) step-keywords))
-		  
+
 		  :else false)))
 
   (is (= false (match-step-keywords? ["a"] ["a" "b"])))
@@ -107,8 +107,8 @@
 	(is (= (first @*steps*) (match-steps? :given ["a" "b" "c"])))
 	(is (= (second @*steps*) (match-steps? :when ["a" "b" "c"])))
 	(is (= (nth @*steps* 2) (match-steps? :then ["a" "b" "c"])))))
-  
-(defn- tokenize-scenario 
+
+(defn- tokenize-scenario
   ([test-clauses]
 	 (tokenize-scenario nil [] test-clauses))
   ([stage accum test-clauses]
@@ -125,7 +125,7 @@
 			 (throw (new IllegalArgumentException (str "missing given - found " token)))
 			 (recur :given [:given] (vec (rest test-clauses)))))))))
 
-(defn- group-tokens 
+(defn- group-tokens
   ([tokens]
 	 (group-tokens [] tokens))
   ([accum tokens]
@@ -149,7 +149,7 @@
   (print (str stage " " (apply str test-clauses) " ")))
 
 (with-test
-	(defn- get-test-fn-args 
+	(defn- get-test-fn-args
 	  ([scenario-keywords step-keywords]
 		 (get-test-fn-args [] scenario-keywords step-keywords))
 	  ([accum scenario-keywords step-keywords]
@@ -162,12 +162,12 @@
 					(second scenario-keywords))
 			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) (rest step-keywords))
 			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) step-keywords))))))
-  
+
   (is (= [] (get-test-fn-args ["a" "b" "c"] ["a" "b" "c"])))
   (is (= ["b" "c" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" (fn [b c d] [b c d]) "e"])))
   (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" (fn [a] a) "c"]))))
 
-(defn- execute-scenario 
+(defn- execute-scenario
   ([title tests]
 	 (binding [*out* (new StringWriter)]
 	   (println (str "\n Scenario : " title " (PENDING)\n"))
@@ -177,7 +177,7 @@
 			 (println " ---- ---- ")
 			 (println pending-test-info)))
 		 (with-test-out
-		   (println (str "\n Scenario : " title " (EXECUTED)")))))) 
+		   (println (str "\n Scenario : " title " (EXECUTED)"))))))
   ([_ tests test-known-pending]
 	 (if (< 0 (count tests))
 	   (let [test-line (first tests)
@@ -191,10 +191,12 @@
 		   (recur 't (rest tests) test-known-pending)
 		   (recur 't (rest tests) true)))
 	   (not test-known-pending))))
-  
+
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
-  `(execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))
+  (let [test-name (re-gsub #"[^a-zA-Z -]" "" (re-gsub #" " "-" title))]
+	`(deftest ~(symbol test-name)
+	   (execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))))
 
 (deftest integration-test
   (binding [*steps* (ref [])
@@ -239,7 +241,7 @@
 		[Then a result is (fn [n] (num n))]
 		[n]
 	  (is (= n (. test-fn-map get "answer"))))
-	  
+
 	(scenario "the + and * functions"
 			  Given a first number 1
 			  and a second number 2
@@ -262,7 +264,7 @@
 		[given a string (fn [t] (. test-fn-map put "first conversion string called" "true") t)]
 		[arg]
 	  (. test-fn-map put :given arg))
-	(defstep 
+	(defstep
 		[when the tokens are counted]
 		[]
 	  (. test-fn-map put :when "when"))
