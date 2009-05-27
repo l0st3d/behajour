@@ -5,8 +5,34 @@
 (import 'java.io.StringWriter)
 (import 'java.util.HashMap)
 
-(def *steps* (ref []))
 (defstruct step :stage :keywords :implementation)
+
+(with-test
+	(defn are-keywords-same? [first-keywords second-keywords]
+	  (if (or (not (= (count first-keywords) (count second-keywords)))
+			  (some false? (map #(or (and (fn? %1) (fn? %2)) (= %1 %2)) first-keywords second-keywords)))
+		false
+		true))
+  (is (true? (are-keywords-same? ["a" "b" "c"] ["a" "b" "c"])))
+  (is (true? (are-keywords-same? ["a" #(str %) "c"] ["a" #(num %) "c"])))
+  (is (false? (are-keywords-same? ["a" #(str %) "c" "d"] ["a" #(num %) "c"])))
+  (is (false? (are-keywords-same? ["a" #(str %) "c" "d"] ["a" "c" #(num %) "d"])))
+  (is (false? (are-keywords-same? ["a" "b" "c" "d"] ["a" "b" "c"]))))
+
+(with-test
+	(defn check-first-step-has-different-keywords-to-the-rest [new-list]
+		(if (< 1 (count new-list))
+		  (let [new-step (first new-list)
+				old-steps (rest new-list)]
+			(some #(are-keywords-same? (new-step :keywords) (:keywords %)) old-steps))
+		  false))
+  (is (true? (check-first-step-has-different-keywords-to-the-rest [(struct step :given ["a" "b"]),
+																   (struct step :given ["a" "c"])]))))
+
+(def *steps* (ref () :validator (fn [new-list-of-steps]
+								  (if (not (check-first-step-has-different-keywords-to-the-rest new-list-of-steps))
+									true
+									(throw (IllegalArgumentException. (str "Matches existing step : " (:keywords (first new-list-of-steps)))))))))
 
 (def test-fn-map (new HashMap))
 
