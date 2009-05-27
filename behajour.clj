@@ -162,7 +162,7 @@
 		   (if (. "and" equalsIgnoreCase token)
 			 (recur stage (conj accum stage) (vec (rest test-clauses)))
 			 (if (or (. "then" equals token) (. "when" equals token))
-			   (recur stage (conj accum (keyword (. token toLowerCase))) (vec (rest test-clauses)))
+			   (recur (make-keyword token) (conj accum (keyword (. token toLowerCase))) (vec (rest test-clauses)))
 			   (recur stage (conj accum token) (vec (rest test-clauses)))))
 		   (if (not (= token "given"))
 			 (throw (new IllegalArgumentException (str "missing given - found " token)))
@@ -226,8 +226,9 @@
 			 step (match-steps? stage test-clauses)]
 		 (print-step stage (str-join " " test-clauses))
 		 (if step 
-		   (if (not test-known-pending)
-			 (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords))))
+		   (do (if (not test-known-pending)
+				 (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords))))
+			   (println " "))
 		   (println "(PENDING)"))
 		 (if step
 		   (recur 't (rest tests) test-known-pending)
@@ -245,9 +246,13 @@
 			test-fn-map (new HashMap)]
 	(try
 	 (defstep
-		 [given a precondition with a bit of data in]
+		 [given a precondition with (fn [& args] (str args))]
+		 [data]
+	   (print " -- " data " --"))
+	 (defstep
+		 [then another result is equal to some data]
 		 []
-	   (println "a"))
+	   (print " -- should not be executed --"))
 
 	 (scenario "the bdd library runs tests in a given, when, then format"
 			   given a precondition with a bit of data in
