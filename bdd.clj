@@ -12,12 +12,12 @@
 
 (with-test
 	(defn- map-elements-to-strings [[ & elements]]
-	  (map (fn [a] (str a)) elements))
+	  (map #(str %) elements))
   (is (= ["a" "b" "c"] (map-elements-to-strings ['a 'b 'c]))))
 
 (with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
-	  (map #(if (fn? %) % (str %)) elements))
+	  (map #(try (do (eval %) %) (catch java.lang.Throwable e (str %))) elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
   (let [func #(num %)]
 	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func])))))
@@ -33,7 +33,7 @@
 (with-test
 	(defn- make-keyword [keywd]
 	  (let [k (. (str keywd) toLowerCase)]
-		(if (some #(= % k) ["given" "when" "then"])
+		(if (some #(= k %) ["given" "when" "then"])
 		  (keyword k)
 		  (throw (new IllegalArgumentException (str "unexpected keyword : " keyword))))))
   (is (thrown? IllegalArgumentException (make-keyword 'asdf)))
@@ -263,8 +263,8 @@
 			  When the numbers are summed
 			  Then a result is 3
 			  When the numbers are multiplied
-			  Then a result is 2))
-	)
+			  Then a result is 2)
+	))
 
 (deftest test-steps-are-displayed-as-pending
   (binding [*test-out* (new StringWriter)]
@@ -278,7 +278,7 @@
 			test-fn-map (new HashMap)]
 
 	(defstep
-		[given a string (fn [t] (. test-fn-map put "first conversion string called" "true") t)]
+		[given a string #(do (. test-fn-map put "first conversion string called" "true") t)]
 		[arg]
 	  (. test-fn-map put :given arg))
 	(defstep
@@ -286,7 +286,7 @@
 		[]
 	  (. test-fn-map put :when "when"))
 	(defstep
-		[then there is (fn [n] (. test-fn-map put "second conversion string called" "true") n) token]
+		[then there is #(do (. test-fn-map put "second conversion string called" "true") n) token]
 		[arg]
 	  (. test-fn-map put :then arg))
 
