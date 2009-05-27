@@ -274,11 +274,13 @@
 	 (finally (def behajour-test-the-+-and-*-functions nil)))))
 
 (deftest test-steps-are-displayed-as-pending
-  (binding [*test-out* (new StringWriter)]
-	(scenario "test pending" Given something)
-	(behajour-test-test-pending)
-	(def behajour-test-test-pending nil)
-	(is (. (str *test-out*) matches ".*PENDING.*"))))
+  (try
+   (let [test-results (new StringWriter)]
+	 (binding [*test-out* test-results]
+	   (scenario "test pending" Given a step that does not exist)
+	   (behajour-test-test-pending))
+	 (is (. (str test-results) contains "PENDING")))
+   (finally (def behajour-test-test-pending nil))))
 
 (deftest test-strings-group-tokens
   (binding [*steps* (ref [])
