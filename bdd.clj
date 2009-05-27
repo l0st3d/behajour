@@ -46,15 +46,15 @@
 (defmacro defstep "Use this to create the steps that implement the scenarios"
   [[stage & keywords] args & body]
   `(define-step ~(make-keyword stage) ~(vec (map-elements-to-fns-or-strings keywords))
-		(fn ~args ~@body)))
+	 (fn ~args ~@body)))
 
 (deftest test-defstep
   (is (= `(define-step :given ["a" "thing"]
 			(fn [] (println "fish")))
 		 (macroexpand-1
 		  '(defstep
-			 [Given a thing]
-			 []
+			   [Given a thing]
+			   []
 			 (clojure.core/println "fish")))))
   (is (vector? (nth (macroexpand-1 '(defstep [given a thing] [] (println "fish"))) 2)))
   (let [func #(num %)]
@@ -168,21 +168,22 @@
 (with-test
 	(defn- get-test-fn-args
 	  ([scenario-keywords step-keywords]
-		 (get-test-fn-args [] scenario-keywords step-keywords))
-	  ([accum scenario-keywords step-keywords]
+		 (get-test-fn-args [] scenario-keywords step-keywords []))
+	  ([accum scenario-keywords step-keywords args-to-be-converted]
 		 (if (or (= 0 (count scenario-keywords))
 				 (= 0 (count step-keywords)))
 		   accum
 		   (if (= (first step-keywords) (first scenario-keywords))
-			 (recur accum (rest scenario-keywords) (rest step-keywords))
+			 (recur accum (rest scenario-keywords) (rest step-keywords) [])
 			 (if (= (second step-keywords)
 					(second scenario-keywords))
-			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) (rest step-keywords))
-			   (recur (conj accum (first scenario-keywords)) (rest scenario-keywords) step-keywords))))))
+			   (recur (conj accum (apply (first step-keywords) (conj args-to-be-converted (first scenario-keywords)))) (rest scenario-keywords) (rest step-keywords) [])
+			   (recur accum (rest scenario-keywords) step-keywords (conj args-to-be-converted (first scenario-keywords))))))))
 
   (is (= [] (get-test-fn-args ["a" "b" "c"] ["a" "b" "c"])))
-  (is (= ["b" "c" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" (fn [b c d] [b c d]) "e"])))
-  (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" (fn [a] a) "c"]))))
+  (is (= [["d" "c" "b"]] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" (fn [b c d] [d c b]) "e"])))
+  (is (= ["b" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" #(str %) "c" #(str %) "e"])))
+  (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" #(str %) "c"]))))
 
 (with-test
 	(defn- execute-scenario
@@ -211,66 +212,66 @@
 
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
-  (let [test-name (re-gsub #"[^a-zA-Z -?]" "" (re-gsub #" " "-" (str "behajour-test-" title)))]
+  (let [test-name (re-gsub #"[^a-zA-Z ?+*/!_-]" "" (re-gsub #" " "-" (str "behajour-test-" title)))]
 	`(deftest ~(symbol test-name)
 	   (execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))))
 
 (deftest integration-test
   (binding [*steps* (ref [])
 			test-fn-map (new HashMap)]
-	(defstep
-		[given a precondition with some data in]
-		[]
-	  (println "a"))
+	(try
+	 (defstep
+		 [given a precondition with some data in]
+		 []
+	   (println "a"))
 
-	(scenario "the bdd library runs tests in a given, when, then format"
-			  given a precondition with some data in
-			  and another precondition
-			  When an action happens
-			  and another action happens that requires some input
-			  Then a result is true
-			  and another result is equal to some data
-			  and a final test that we received some input)))
+	 (scenario "the bdd library runs tests in a given, when, then format"
+			   given a precondition with some data in
+			   and another precondition
+			   When an action happens
+			   and another action happens that requires some input
+			   Then a result is true
+			   and another result is equal to some data
+			   and a final test that we received some input)
+	 (finally (def behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format nil)))))
 
 (deftest test-multiple-actions
   (binding [*steps* (ref [])
 			test-fn-map (new HashMap)]
+	(try
+	 (defstep
+		 [given a #(str %) number #(. Integer parseInt %)]
+		 [k n]
+	   (. test-fn-map put k n))
 
-	(defstep
-		[given a #(str %) number #(num %)]
-		[k n]
-	  (. test-fn-map put k n))
+	 (defstep
+		 [When the numbers are summed]
+		 []
+	   (. test-fn-map put "answer" (+ (. test-fn-map get "first")
+									  (. test-fn-map get "second"))))
 
-	(defstep
-		[When the numbers are summed]
-		[]
-	  (. test-fn-map put "answer" (+ (. test-fn-map get "first")
-									 (. test-fn-map get "second"))))
+	 (defstep
+		 [When the numbers are multiplied]
+		 []
+	   (. test-fn-map put "answer" (* (. test-fn-map get "first")
+									  (. test-fn-map get "second"))))
 
-	(defstep
-		[When the numbers are multiplied]
-		[]
-	  (. test-fn-map put "answer" (* (. test-fn-map get "first")
-								  (. test-fn-map get "second"))))
+	 (defstep
+		 [Then a result is #(. Integer parseInt %)]
+		 [n]
+	   (is (= n (. test-fn-map get "answer"))))
 
-	(defstep
-		[Then a result is #(num %)]
-		[n]
-	  (is (= n (. test-fn-map get "answer"))))
+	 (scenario "the + and * functions"
+			   Given a first number 1
+			   and a second number 2
+			   When the numbers are summed
+			   Then a result is 3
+			   When the numbers are multiplied
+			   Then a result is 2)
 
-	(scenario "the + and * functions"
-			  Given a first number 1
-			  and a second number 2
-			  When the numbers are summed
-			  Then a result is 3
-			  When the numbers are multiplied
-			  Then a result is 2)
+	 (behajour-test-the-+-and-*-functions)
 
-	(behajour-test-the-+-and-*-functions)
-
-	(def behajour-test-the-+-and-*-functions nil)
-
-	))
+	 (finally (def behajour-test-the-+-and-*-functions nil)))))
 
 (deftest test-steps-are-displayed-as-pending
   (binding [*test-out* (new StringWriter)]
@@ -282,34 +283,32 @@
 (deftest test-strings-group-tokens
   (binding [*steps* (ref [])
 			test-fn-map (new HashMap)]
+	(try
+	 (defstep
+		 [given a string #(do (. test-fn-map put "first conversion string called" "true") %)]
+		 [arg]
+	   (. test-fn-map put :given arg))
+	 (defstep
+		 [when the tokens are counted]
+		 []
+	   (. test-fn-map put :when "when"))
+	 (defstep
+		 [then there is #(do (. test-fn-map put "second conversion string called" "true") %) token]
+		 [arg]
+	   (. test-fn-map put :then arg))
 
-	(defstep
-		[given a string #(do (. test-fn-map put "first conversion string called" "true") %)]
-		[arg]
-	  (. test-fn-map put :given arg))
-	(defstep
-		[when the tokens are counted]
-		[]
-	  (. test-fn-map put :when "when"))
-	(defstep
-		[then there is #(do (. test-fn-map put "second conversion string called" "true") %) token]
-		[arg]
-	  (. test-fn-map put :then arg))
+	 (scenario "strings are one token"
+			   Given a string "with some spaces"
+			   When the tokens are counted
+			   Then there is 1 token)
 
-	(println (str @*steps*))
+	 (behajour-test-strings-are-one-token)
 
-	(scenario "strings are one token"
-			  Given a string "with some spaces"
-			  When the tokens are counted
-			  Then there is 1 token)
-
-	(behajour-test-strings-are-one-token)
-
-	(is (= 3 (count @*steps*)))
-	(is (= "with some spaces" (. test-fn-map get :given)))
-	(is (= "when" (. test-fn-map get :when)))
-	(is (= "1" (. test-fn-map get :then)))
-	(is (= "true" (. test-fn-map get "first conversion string called")))
-	(is (= "true" (. test-fn-map get "second conversion string called")))
-	(def behajour-test-strings-are-one-token nil)))
+	 (is (= 3 (count @*steps*)))
+	 (is (= "with some spaces" (. test-fn-map get :given)))
+	 (is (= "when" (. test-fn-map get :when)))
+	 (is (= "1" (. test-fn-map get :then)))
+	 (is (= "true" (. test-fn-map get "first conversion string called")))
+	 (is (= "true" (. test-fn-map get "second conversion string called")))
+	 (finally (def behajour-test-strings-are-one-token nil)))))
 
