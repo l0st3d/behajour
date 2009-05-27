@@ -265,6 +265,11 @@
 			  Then a result is 3
 			  When the numbers are multiplied
 			  Then a result is 2)
+
+	(behajour-test-the-+-and-*-functions)
+
+	(def behajour-test-the-+-and-*-functions nil)
+
 	))
 
 (deftest test-steps-are-displayed-as-pending
@@ -298,11 +303,13 @@
 			  When the tokens are counted
 			  Then there is 1 token)
 
-	; (behajour-test-strings-are-one-token)
+	(behajour-test-strings-are-one-token)
 
 	(is (= 3 (count @*steps*)))
 	(is (= "with some spaces" (. test-fn-map get :given)))
 	(is (= "when" (. test-fn-map get :when)))
 	(is (= "1" (. test-fn-map get :then)))
 	(is (= "true" (. test-fn-map get "first conversion string called")))
-	(is (= "true" (. test-fn-map get "second conversion string called")))))
+	(is (= "true" (. test-fn-map get "second conversion string called")))
+	(def behajour-test-strings-are-one-token nil)))
+
