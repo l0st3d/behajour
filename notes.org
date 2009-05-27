@@ -11,3 +11,6 @@
  - [ ] stops executing test if a step is pending
  - [ ] conversion functions
  - [ ] identify duplicate steps
+
+* Bugs
+ - [ ] "and" keyword just converts to "given"

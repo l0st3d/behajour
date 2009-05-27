@@ -279,7 +279,7 @@
 			test-fn-map (new HashMap)]
 
 	(defstep
-		[given a string #(do (. test-fn-map put "first conversion string called" "true") t)]
+		[given a string #(do (. test-fn-map put "first conversion string called" "true") %)]
 		[arg]
 	  (. test-fn-map put :given arg))
 	(defstep
@@ -287,7 +287,7 @@
 		[]
 	  (. test-fn-map put :when "when"))
 	(defstep
-		[then there is #(do (. test-fn-map put "second conversion string called" "true") n) token]
+		[then there is #(do (. test-fn-map put "second conversion string called" "true") %) token]
 		[arg]
 	  (. test-fn-map put :then arg))
 
