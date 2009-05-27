@@ -193,8 +193,13 @@
   (is (= [[:given "a"] [:when "b"] [:then "c"]]
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
 
+(with-test
+	(defn capitalise [word]
+	  (str (. (str (first word)) toUpperCase) (. (subs word 1) toLowerCase)))
+  (is (= "Upper" (capitalise "upper"))))
+
 (defn- print-step [stage test-clauses]
-  (print (str stage " " (apply str test-clauses) " ")))
+  (print (str (capitalise (name stage)) " " (str-join " " test-clauses))))
 
 (with-test
 	(defn- get-test-fn-args
@@ -229,12 +234,12 @@
 	   (let [test-line (first tests)
 			 [stage & test-clauses] test-line
 			 step (match-steps? stage test-clauses)]
-		 (print-step stage (str-join " " test-clauses))
+		 (print-step stage test-clauses)
 		 (if step 
 		   (do (if (not test-known-pending)
 				 (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords))))
 			   (println " "))
-		   (println "(PENDING)"))
+		   (println " (PENDING)"))
 		 (if step
 		   (recur 't (rest tests) test-known-pending)
 		   (recur 't (rest tests) true)))
