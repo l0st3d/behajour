@@ -61,6 +61,10 @@
   (binding [*steps* (ref [])]
 	(let [impl (fn [] 1)]
 	  (define-step :given ["a" "b" "c"] impl)
+	  (is (= @*steps* [{:stage :given :keywords ["a" "b" "c"] :implementation impl}]))))
+  (binding [*steps* (ref [{:stage :given :keywords ["a" "b" "c"] :implementation (fn [] 0)}])]
+	(let [impl (fn [] 1)]
+	  (define-step :given ["a" "b" "c"] impl)
 	  (is (= @*steps* [{:stage :given :keywords ["a" "b" "c"] :implementation impl}])))))
 
 (with-test
