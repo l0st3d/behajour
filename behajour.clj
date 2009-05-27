@@ -24,13 +24,13 @@
 		(if (< 1 (count new-list))
 		  (let [new-step (first new-list)
 				old-steps (rest new-list)]
-			(some #(are-keywords-same? (new-step :keywords) (:keywords %)) old-steps))
-		  false))
-  (is (true? (check-first-step-has-different-keywords-to-the-rest [(struct step :given ["a" "b"]),
-																   (struct step :given ["a" "c"])]))))
+			(not (some #(are-keywords-same? (new-step :keywords) (:keywords %)) old-steps)))
+		  true))
+  (is (true? (check-first-step-has-different-keywords-to-the-rest (list (struct step :given ["a" "b"]),
+																		(struct step :given ["a" "c"]))))))
 
 (def *steps* (ref () :validator (fn [new-list-of-steps]
-								  (if (not (check-first-step-has-different-keywords-to-the-rest new-list-of-steps))
+								  (if (check-first-step-has-different-keywords-to-the-rest new-list-of-steps)
 									true
 									(throw (IllegalArgumentException. (str "Matches existing step : " (:keywords (first new-list-of-steps)))))))))
 
@@ -211,34 +211,32 @@
   (is (= ["b" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" #(str %) "c" #(str %) "e"])))
   (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" #(str %) "c"]))))
 
-(with-test
-	(defn- execute-scenario
-	  ([title tests]
-		 (binding [*out* (new StringWriter)]
-		   (println (str "\n Scenario : " title " (PENDING)\n"))
-		   (if (execute-scenario title tests false)
-			 (let [pending-test-info (str *out*)]
-			   (with-test-out
-				 (println pending-test-info))))))
-	  ([_ tests test-known-pending]
-		 (if (< 0 (count tests))
-		   (let [test-line (first tests)
-				 [stage & test-clauses] test-line
-				 step (match-steps? stage test-clauses)]
-			 (print-step stage (str-join " " test-clauses))
-			 (if (and step (not test-known-pending))
-			   (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords)))
-			   (println "(PENDING)"))
-			 (if step
-			   (recur 't (rest tests) test-known-pending)
-			   (recur 't (rest tests) true)))
-		   test-known-pending)))
-  
-  (is (= 1 1)))
+(defn- execute-scenario
+  ([title tests]
+	 (binding [*out* (new StringWriter)]
+	   (println (str "\n Scenario : " title " (PENDING)\n"))
+	   (if (execute-scenario title tests false)
+		 (let [pending-test-info (str *out*)]
+		   (with-test-out
+			 (println pending-test-info))))))
+  ([_ tests test-known-pending]
+	 (if (< 0 (count tests))
+	   (let [test-line (first tests)
+			 [stage & test-clauses] test-line
+			 step (match-steps? stage test-clauses)]
+		 (print-step stage (str-join " " test-clauses))
+		 (if step 
+		   (if (not test-known-pending)
+			 (apply (step :implementation) (get-test-fn-args test-clauses (step :keywords))))
+		   (println "(PENDING)"))
+		 (if step
+		   (recur 't (rest tests) test-known-pending)
+		   (recur 't (rest tests) true)))
+	   test-known-pending)))
 
 (defmacro scenario "The BDD scenario definition macro"
   [title & test-clauses]
-  (let [test-name (re-gsub #"[^a-zA-Z ?+*/!_-]" "" (re-gsub #" " "-" (str "behajour-test-" title)))]
+  (let [test-name (re-gsub #"'" "-" (re-gsub #"[^a-zA-Z ?+*/!_-]" "" (re-gsub #" " "-" (str "behajour-test-" title))))]
 	`(deftest ~(symbol test-name)
 	   (execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))))
 
@@ -259,6 +257,9 @@
 			   Then a result is true
 			   and another result is equal to some data
 			   and a final test that we received some input)
+
+	 ; (behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format)
+
 	 (finally (def behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format nil)))))
 
 (deftest test-multiple-actions
@@ -302,10 +303,15 @@
 (deftest test-steps-are-displayed-as-pending
   (try
    (let [test-results (new StringWriter)]
-	 (binding [*test-out* test-results]
-	   (scenario "test pending" Given a step that does not exist)
+	 (binding [*steps* (ref ())
+			   *test-out* test-results]
+	   (defstep [given one that does] [& args] (println args))
+	   (scenario "test pending" Given a step that does not exist and one that does)
 	   (behajour-test-test-pending))
-	 (is (. (str test-results) contains "PENDING")))
+	 (is (. (str test-results) contains "Scenario : test pending (PENDING)
+
+:given a step that does not exist (PENDING)
+:given one that does")))
    (finally (def behajour-test-test-pending nil))))
 
 (deftest test-strings-group-tokens
