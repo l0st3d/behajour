@@ -245,12 +245,12 @@
 			test-fn-map (new HashMap)]
 	(try
 	 (defstep
-		 [given a precondition with some data in]
+		 [given a precondition with a bit of data in]
 		 []
 	   (println "a"))
 
 	 (scenario "the bdd library runs tests in a given, when, then format"
-			   given a precondition with some data in
+			   given a precondition with a bit of data in
 			   and another precondition
 			   When an action happens
 			   and another action happens that requires some input
@@ -258,7 +258,7 @@
 			   and another result is equal to some data
 			   and a final test that we received some input)
 
-	 ; (behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format)
+	 (behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format)
 
 	 (finally (def behajour-test-the-bdd-library-runs-tests-in-a-given-when-then-format nil)))))
 
