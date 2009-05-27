@@ -44,6 +44,11 @@
 (with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
 	  (map #(try (do (if (fn? (eval %)) % (str %))) (catch java.lang.Throwable e (str %))) elements))
+	  ;; (map (fn [el] (try (do (if (and (some (fn [sym] (= sym el)) (keys (ns-interns *ns*)))
+	  ;; 								  (fn? (eval el)))
+	  ;; 						   el
+	  ;; 						   (str el)))
+	  ;; 					 (catch java.lang.Throwable e (str el)))) elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
   (let [func #(num %)]
 	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func]))))

@@ -11,6 +11,8 @@
  - [X] stops executing test if a step is pending
  - [X] conversion functions
  - [X] identify duplicate steps
+ - [ ] restrict functions that can be used in steps to ones from the current name-space (since you
+   might want to use words like "some" or "keys" or something without escaping them in some way)
 
 * Bugs
  - [X] "and" keyword just converts to "given"
