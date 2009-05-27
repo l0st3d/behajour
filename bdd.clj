@@ -17,10 +17,12 @@
 
 (with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
-	  (map #(try (do (eval %) %) (catch java.lang.Throwable e (str %))) elements))
+	  (map #(try (do (if (fn? (eval %)) % (str %))) (catch java.lang.Throwable e (str %))) elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
   (let [func #(num %)]
-	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func])))))
+	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func]))))
+  (binding [test-fn-map 1]
+	(is (= ["a" "b" "test-fn-map"] (map-elements-to-fns-or-strings ['a 'b 'test-fn-map])))))
 
 (with-test
 	(defn define-step [stage keywords fn]
@@ -221,7 +223,6 @@
 		[]
 	  (println "a"))
 
-
 	(scenario "the bdd library runs tests in a given, when, then format"
 			  given a precondition with some data in
 			  and another precondition
@@ -297,7 +298,7 @@
 			  When the tokens are counted
 			  Then there is 1 token)
 
-	(behajour-test-strings-are-one-token)
+	; (behajour-test-strings-are-one-token)
 
 	(is (= 3 (count @*steps*)))
 	(is (= "with some spaces" (. test-fn-map get :given)))
