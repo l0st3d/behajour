@@ -188,7 +188,7 @@
 				  (rest tokens)))))))
 
 (with-test
-	(defn- parse-scenario [ & test-clauses]
+	(defn parse-scenario [ & test-clauses]
 	  (group-tokens (tokenize-scenario test-clauses)))
   (is (= [[:given "a"] [:when "b"] [:then "c"]]
 		 (parse-scenario "Given" "a" "When" "b" "Then" "c"))))
@@ -216,7 +216,7 @@
   (is (= ["b" "d"] (get-test-fn-args ["a" "b" "c" "d" "e"] ["a" #(str %) "c" #(str %) "e"])))
   (is (= ["b"] (get-test-fn-args ["a" "b" "c"] ["a" #(str %) "c"]))))
 
-(defn- execute-scenario
+(defn execute-scenario
   ([title tests]
 	 (binding [*out* (new StringWriter)]
 	   (println (str "\n Scenario : " title " (PENDING)\n"))
@@ -245,6 +245,11 @@
   (let [test-name (re-gsub #"'" "-" (re-gsub #"[^a-zA-Z ?+*/!_-]" "" (re-gsub #" " "-" (str "behajour-test-" title))))]
 	`(deftest ~(symbol test-name)
 	   (execute-scenario ~title (parse-scenario ~@(map-elements-to-strings test-clauses))))))
+
+(defn run-behajour-tests
+  ([] (run-tests))
+  ([& namespaces]
+	 (run-tests namespaces)))
 
 (deftest integration-test
   (binding [*steps* (ref [])

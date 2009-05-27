@@ -4,7 +4,7 @@
  - I'm used to writing tests in a Given, when, then style, with the reuse available with JBehave
  - Saw http://code.google.com/p/conducta/ and thought it could be done better, so I gave it a go ...
 
-* Features [85%]
+* Features [77%]
  - [X] defstep macro that defines each step, and how it gets data
  - [X] scenario macro that defines each test
  - [X] integrates with test-is - each scenario is a test-is test
@@ -13,6 +13,12 @@
  - [X] identify duplicate steps
  - [ ] restrict functions that can be used in steps to ones from the current name-space (since you
    might want to use words like "some" or "keys" or something without escaping them in some way)
+ - [ ] defstep replaces duplicate steps in stead of throwing an error
+ - [X] run-tests wrapper function so you can just import behajour if you like
+
+* Tasks [0%]
+ - [ ] improve error reporting
+ - [ ] clean up code
 
 * Bugs
  - [X] "and" keyword just converts to "given"
