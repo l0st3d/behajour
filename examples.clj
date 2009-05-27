@@ -80,3 +80,29 @@
 ;;
 ;; Now you see that it's gone quiet.  This is because the test has
 ;; passed.  Time to move on to the next test.
+
+
+;; Next we'll look at conversion functions, so we'll need a new
+;; scenario:
+
+(use 'clojure.contrib.test-is)
+
+(scenario "the + function"
+		  Given a first number 1
+		  and a second number 2
+		  When the numbers are summed
+		  Then a result is 3)
+
+
+(def test-data (new java.util.ArrayList))
+
+(defstep
+	[given a #(str %) number #(. Integer parseInt %)]
+	[k n]
+  (. test-data add n))
+
+(defstep
+	[When the numbers are summed]
+	[]
+  (print " -- " (reduce + test-data)))
+
