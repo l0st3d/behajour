@@ -330,8 +330,8 @@
 	   (behajour-test-test-pending))
 	 (is (. (str test-results) contains "Scenario : test pending (PENDING)
 
-:given a step that does not exist (PENDING)
-:given one that does")))
+Given a step that does not exist (PENDING)
+Given one that does")))
    (finally (def behajour-test-test-pending nil))))
 
 (deftest test-strings-group-tokens
