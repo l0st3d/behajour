@@ -97,7 +97,7 @@
 (def test-data (new java.util.ArrayList))
 
 (defstep
-	[given a #(str %) number #(. Integer parseInt %)]
+	[given a ~#(str %) number ~#(. Integer parseInt %)]
 	[k n]
   (. test-data add n))
 

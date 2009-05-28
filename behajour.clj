@@ -29,11 +29,7 @@
   (is (true? (check-first-step-has-different-keywords-to-the-rest (list (struct step :given ["a" "b"]),
 																		(struct step :given ["a" "c"]))))))
 
-(def *steps* (ref () :validator (fn [new-list-of-steps]
-								  (if (check-first-step-has-different-keywords-to-the-rest new-list-of-steps)
-									true
-									(throw (IllegalArgumentException. (str "Matches existing step : " (:keywords (first new-list-of-steps)))))))))
-
+(def *steps* (ref []))
 (def test-fn-map (new HashMap))
 
 (with-test
@@ -42,22 +38,35 @@
   (is (= ["a" "b" "c"] (map-elements-to-strings ['a 'b 'c]))))
 
 (with-test
+	(defn- evalable-string? [s]
+	  (if (= \~ (first (str s)))
+		(subs s 1)))
+  (is (nil? (evalable-string? "lkjl")))
+  (is (= "1" (evalable-string? "~1"))))
+
+
+(with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
-	  (map #(try (do (if (fn? (eval %)) % (str %))) (catch java.lang.Throwable e (str %))) elements))
-	  ;; (map (fn [el] (try (do (if (and (some (fn [sym] (= sym el)) (keys (ns-interns *ns*)))
-	  ;; 								  (fn? (eval el)))
-	  ;; 						   el
-	  ;; 						   (str el)))
-	  ;; 					 (catch java.lang.Throwable e (str el)))) elements))
+	  (map #(try (do (if (and (evalable-string? %) (fn? (eval %))) % (str %))) (catch java.lang.Throwable e (str %))) elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
   (let [func #(num %)]
-	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b func]))))
+	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b '~func]))))
   (binding [test-fn-map 1]
 	(is (= ["a" "b" "test-fn-map"] (map-elements-to-fns-or-strings ['a 'b 'test-fn-map])))))
 
 (with-test
-	(defn define-step [stage keywords fn]
-	  (dosync (alter *steps* conj (struct step stage keywords fn))))
+	(defn define-step [stage keywords func]
+	  (dosync
+	   (let [idx (first 
+				  (first 
+				   (filter (fn [[_ stp]] (and (= stage (:stage stp))
+											  (are-keywords-same? (:keywords stp) keywords)))
+							 (map vector (iterate inc 0) @*steps*))))
+			 new-step (struct step stage keywords func)]
+		 (if (nil? idx)
+		   (alter *steps* conj new-step)
+		   (alter *steps* assoc idx new-step))
+		 idx)))
   (binding [*steps* (ref [])]
 	(let [impl (fn [] 1)]
 	  (define-step :given ["a" "b" "c"] impl)
@@ -265,7 +274,7 @@
 			test-fn-map (new HashMap)]
 	(try
 	 (defstep
-		 [given a precondition with (fn [& args] (str args))]
+		 [given a precondition with ~(fn [& args] (str args))]
 		 [data]
 	   (print " -- " data " --"))
 	 (defstep
@@ -291,7 +300,7 @@
 			test-fn-map (new HashMap)]
 	(try
 	 (defstep
-		 [given a #(str %) number #(. Integer parseInt %)]
+		 [given a ~#(str %) number ~#(. Integer parseInt %)]
 		 [k n]
 	   (. test-fn-map put k n))
 
@@ -308,7 +317,7 @@
 									  (. test-fn-map get "second"))))
 
 	 (defstep
-		 [Then a result is #(. Integer parseInt %)]
+		 [Then a result is ~#(. Integer parseInt %)]
 		 [n]
 	   (is (= n (. test-fn-map get "answer"))))
 
@@ -343,7 +352,7 @@ Given one that does")))
 			test-fn-map (new HashMap)]
 	(try
 	 (defstep
-		 [given a string #(do (. test-fn-map put "first conversion string called" "true") %)]
+		 [given a string ~#(do (. test-fn-map put "first conversion string called" "true") %)]
 		 [arg]
 	   (. test-fn-map put :given arg))
 	 (defstep
@@ -351,7 +360,7 @@ Given one that does")))
 		 []
 	   (. test-fn-map put :when "when"))
 	 (defstep
-		 [then there is #(do (. test-fn-map put "second conversion string called" "true") %) token]
+		 [then there is ~#(do (. test-fn-map put "second conversion string called" "true") %) token]
 		 [arg]
 	   (. test-fn-map put :then arg))
 
