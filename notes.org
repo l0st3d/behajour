@@ -2,7 +2,7 @@
  - I want to learn clojure
    - specifically macros
  - I'm used to writing tests in a Given, when, then style, with the reuse available with JBehave
- - Saw http://code.google.com/p/conducta/ and thought it could be done better, so I gave it a go ...
+ - Saw http://code.google.com/p/conducta/ and didn't think it solved my problem ...
 
 * Features [70%]
  - [X] defstep macro that defines each step, and how it gets data
@@ -20,5 +20,5 @@
  - [ ] improve error reporting
  - [ ] clean up code
 
-* Bugs
+* Bugs [100%]
  - [X] "and" keyword just converts to "given"
