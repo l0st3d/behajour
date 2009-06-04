@@ -40,14 +40,21 @@
 (with-test
 	(defn- evalable-string? [s]
 	  (if (= \~ (first (str s)))
-		(subs s 1)))
+		(read-string (subs s 1))))
   (is (nil? (evalable-string? "lkjl")))
-  (is (= "1" (evalable-string? "~1"))))
-
+  (is (= 'lkj (evalable-string? "~lkj")))
+  (is (= 1 (evalable-string? "~1")))
+  (is false? (if (evalable-string? "lkjk") true false))
+  (is true? (if (evalable-string? "~lkjk") true false)))
 
 (with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
-	  (map #(try (do (if (and (evalable-string? %) (fn? (eval %))) % (str %))) (catch java.lang.Throwable e (str %))) elements))
+	  (map #(try (let [evalable-string (evalable-string? %)] 
+				   (if (and evalable-string (fn? (eval evalable-string)))
+					 evalable-string 
+					 (str %)))
+				 (catch java.lang.Throwable e (str %)))
+		   elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
   (let [func #(num %)]
 	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b '~func]))))
