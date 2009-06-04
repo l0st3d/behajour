@@ -15,6 +15,7 @@
  - [ ] defstep replaces duplicate steps in stead of throwing an error
  - [X] run-tests wrapper function so you can just import behajour if you like
  - [ ] isolate the steps to each name-space
+ - [ ] dependencies between scenarios
 
 * Tasks [0%]
  - [ ] improve error reporting
