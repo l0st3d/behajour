@@ -57,7 +57,7 @@
 					   (if (fn? result)
 						 result
 						 (str %)))
-					 (str %))x)
+					 (str %)))
 				 (catch java.lang.Throwable e (str %)))
 		   elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
