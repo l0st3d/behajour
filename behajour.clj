@@ -38,27 +38,32 @@
   (is (= ["a" "b" "c"] (map-elements-to-strings ['a 'b 'c]))))
 
 (with-test
-	(defn- evalable-string? [s]
-	  (if (= \~ (first (str s)))
-		(read-string (subs s 1))))
-  (is (nil? (evalable-string? "lkjl")))
-  (is (= 'lkj (evalable-string? "~lkj")))
-  (is (= 1 (evalable-string? "~1")))
-  (is false? (if (evalable-string? "lkjk") true false))
-  (is true? (if (evalable-string? "~lkjk") true false)))
+	(defn- evalable? [s]
+	  (if (= 'clojure.core/unquote (first s))
+		(read-string (apply str (rest s)))
+		nil))
+  (is (nil? (evalable? "lkjl")))
+  (is (= 'lkj (evalable? '~lkj)))
+  (is (= 1 (evalable? '~1)))
+  (is (= nil (evalable? "~1")))
+  (is false? (if (evalable? "lkjk") true false))
+  (is true? (if (evalable? "~lkjk") true false)))
 
 (with-test
 	(defn- map-elements-to-fns-or-strings [[ & elements]]
-	  (map #(try (let [evalable-string (evalable-string? %)] 
-				   (if (and evalable-string (fn? (eval evalable-string)))
-					 evalable-string 
-					 (str %)))
+	  (map #(try (let [evalable-element (evalable? %)] 
+				   (if evalable-element
+					 (let [result (eval evalable-element)]
+					   (if (fn? result)
+						 result
+						 (str %)))
+					 (str %))x)
 				 (catch java.lang.Throwable e (str %)))
 		   elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
-  (let [func #(num %)]
-	(is (= ["a" "b" func] (map-elements-to-fns-or-strings ['a 'b '~func]))))
-  (binding [test-fn-map 1]
+  (binding [test-fn-map #(num %)]
+	(is (= ["a" "b" test-fn-map] (map-elements-to-fns-or-strings ['a 'b '~test-fn-map]))))
+  (let [test-fn-map #(num %)]
 	(is (= ["a" "b" "test-fn-map"] (map-elements-to-fns-or-strings ['a 'b 'test-fn-map])))))
 
 (with-test
