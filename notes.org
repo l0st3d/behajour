@@ -16,6 +16,7 @@
  - [X] run-tests wrapper function so you can just import behajour if you like
  - [ ] isolate the steps to each name-space
  - [ ] dependencies between scenarios
+ - [ ] setup / tear down
 
 * Tasks [0%]
  - [ ] improve error reporting

@@ -104,5 +104,5 @@
 (defstep
 	[When the numbers are summed]
 	[]
-  (print " -- " (reduce + test-data)))
+  (print " -- " (seq test-data)))
 
