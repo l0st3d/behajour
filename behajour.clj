@@ -55,15 +55,15 @@
 				   (if evalable-element
 					 (let [result (eval evalable-element)]
 					   (if (fn? result)
-						 result
+						 evalable-element
 						 (str %)))
 					 (str %)))
 				 (catch java.lang.Throwable e (str %)))
 		   elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
-  (is (fn? (first (map-elements-to-fns-or-strings ['~(fn [] 1)]))))
+  (is (fn? (eval (first (map-elements-to-fns-or-strings ['~(fn [] 1)])))))
   (binding [test-fn-map #(num %)]
-	(is (= ["a" "b" test-fn-map] (map-elements-to-fns-or-strings ['a 'b '~test-fn-map])))
+	(is (= ["a" "b" 'test-fn-map] (map-elements-to-fns-or-strings ['a 'b '~test-fn-map])))
 	(is (= ["a" "b" "test-fn-map"] (map-elements-to-fns-or-strings ['a 'b 'test-fn-map])))))
 
 (with-test
@@ -113,12 +113,12 @@
 			   []
 			 (clojure.core/println "fish")))))
   (is (vector? (nth (macroexpand-1 '(defstep [given a thing] [] (println "fish"))) 2)))
-  (let [func #(num %)]
-	(is (= `(define-step :given ["a" ~func]
+  (binding [test-fn-map #(num %)]
+	(is (= `(define-step :given ["a" test-fn-map]
 			  (fn [] (println "frog")))
 		   (macroexpand-1
 			(list 'defstep
-				  ['given 'a func]
+				  ['given 'a '~behajour/test-fn-map]
 				  []
 				  '(clojure.core/println "frog")))))))
 
