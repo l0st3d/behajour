@@ -61,9 +61,9 @@
 				 (catch java.lang.Throwable e (str %)))
 		   elements))
   (is (= ["a" "b" "c"] (map-elements-to-fns-or-strings ['a 'b 'c])))
+  (is (fn? (first (map-elements-to-fns-or-strings ['~(fn [] 1)]))))
   (binding [test-fn-map #(num %)]
-	(is (= ["a" "b" test-fn-map] (map-elements-to-fns-or-strings ['a 'b '~test-fn-map]))))
-  (let [test-fn-map #(num %)]
+	(is (= ["a" "b" test-fn-map] (map-elements-to-fns-or-strings ['a 'b '~test-fn-map])))
 	(is (= ["a" "b" "test-fn-map"] (map-elements-to-fns-or-strings ['a 'b 'test-fn-map])))))
 
 (with-test
