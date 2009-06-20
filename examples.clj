@@ -99,6 +99,8 @@
 (defstep
 	[given a ~#(str %) number ~#(. Integer parseInt %)]
 	[k n]
+  (if (= "first" k)
+	(def test-data (new java.util.ArrayList)))
   (. test-data add n))
 
 (defstep

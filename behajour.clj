@@ -21,11 +21,11 @@
 
 (with-test
 	(defn check-first-step-has-different-keywords-to-the-rest [new-list]
-		(if (< 1 (count new-list))
-		  (let [new-step (first new-list)
-				old-steps (rest new-list)]
-			(not (some #(are-keywords-same? (new-step :keywords) (:keywords %)) old-steps)))
-		  true))
+	  (if (< 1 (count new-list))
+		(let [new-step (first new-list)
+			  old-steps (rest new-list)]
+		  (not (some #(are-keywords-same? (new-step :keywords) (:keywords %)) old-steps)))
+		true))
   (is (true? (check-first-step-has-different-keywords-to-the-rest (list (struct step :given ["a" "b"]),
 																		(struct step :given ["a" "c"]))))))
 
@@ -73,7 +73,7 @@
 				  (first 
 				   (filter (fn [[_ stp]] (and (= stage (:stage stp))
 											  (are-keywords-same? (:keywords stp) keywords)))
-							 (map vector (iterate inc 0) @*steps*))))
+						   (map vector (iterate inc 0) @*steps*))))
 			 new-step (struct step stage keywords func)]
 		 (if (nil? idx)
 		   (alter *steps* conj new-step)
@@ -391,3 +391,65 @@ Given one that does")))
 	 (is (= "true" (. test-fn-map get "second conversion string called")))
 	 (finally (def behajour-test-strings-are-one-token nil)))))
 
+(deftest test-many-scenarios
+  (binding [*steps* (ref [])
+			test-fn-map (new HashMap)]
+	(try
+	 (ns behajour-test
+	   (:use behajour))
+	 (defstep
+		 [given a string ~#(do (. test-fn-map put "first conversion string called" "true") %)]
+		 [arg]
+	   (. test-fn-map put :given arg))
+	 (defstep
+		 [when the tokens are counted]
+		 []
+	   (. test-fn-map put :when "when"))
+	 (defstep
+		 [then there is ~#(do (. test-fn-map put "second conversion string called" "true") %) token]
+		 [arg]
+	   (. test-fn-map put :then arg))
+
+	 (defstep
+		 [Given a predicate]
+		 [] (print " -- my first step"))
+
+
+	 (scenario "first scenario"
+			   Given a string "with some spaces"
+			   When the tokens are counted
+			   Then there is 1 token)
+
+	 (scenario "second scenario"
+			   Given a string "with some more spaces"
+			   When the tokens are counted
+			   Then there is 1 token)
+
+	 (scenario "third scenario"
+			   Given a string "with some more spaces"
+			   When the tokens are counted
+			   Then there is 1 token)
+
+	 (scenario "My first scenario"
+			   Given a predicate
+			   When an action happens
+			   Then a result)
+
+	 (scenario "the + function"
+			   Given a first number 1
+			   and a second number 2
+			   When the numbers are summed
+			   Then a result is 3)
+
+	 (defstep
+		 [Then a result]
+		 [] (print " -- my third step"))
+	 
+	 (run-behajour-tests)
+
+	 (finally (def behajour-test-first-scenario nil)
+			  (def behajour-test-second-scenario nil)
+			  (def behajour-test-third-scenario nil)
+			  (def behajour-test-My-first-scenario nil)
+			  (def behajour-test-the-+-function nil)
+			  (in-ns 'behajour)))))
