@@ -1,5 +1,5 @@
 (ns behajour
-  (:use clojure.contrib.test-is)
+  (:use clojure.test)
   (:use clojure.contrib.str-utils))
 
 (import 'java.io.StringWriter)

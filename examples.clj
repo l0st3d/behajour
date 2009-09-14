@@ -7,14 +7,14 @@
 (add-classpath (str "file://" dir))
 
 ;; namespace declaration
-(ns behajour-examples (:require clojure.contrib.test-is) (:use behajour))
+(ns behajour-examples (:require clojure.test) (:use behajour))
 
 
 ;; import libs
 (use 'behajour)
 
 ;; create first scenario
-(scenario "My first scenario"
+(scenario "My first behajour scenario"
 		  Given a predicate
 		  When an action happens
 		  Then a result)
@@ -85,9 +85,9 @@
 ;; Next we'll look at conversion functions, so we'll need a new
 ;; scenario:
 
-(use 'clojure.contrib.test-is)
+(use 'clojure.test)
 
-(scenario "the + function"
+(scenario "the plus function"
 		  Given a first number 1
 		  and a second number 2
 		  When the numbers are summed
